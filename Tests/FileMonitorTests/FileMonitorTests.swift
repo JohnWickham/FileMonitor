@@ -23,7 +23,7 @@ final class FileMonitorTests: XCTestCase {
     }
 
     func testInitModule() throws {
-        XCTAssertNoThrow(try FileMonitor(directory: FileManager.default.temporaryDirectory))
+        XCTAssertNoThrow(try FileMonitor(directory: FileManager.default.temporaryDirectory, options: nil))
     }
 
     struct Watcher: FileDidChangeDelegate {
@@ -36,7 +36,7 @@ final class FileMonitorTests: XCTestCase {
             callback = completion
         }
 
-        func fileDidChanged(event: FileChangeEvent) {
+        func fileDidChange(event: FileChangeEvent) {
             switch event {
             case .changed(let fileInEvent), .deleted(let fileInEvent), .added(let fileInEvent):
                 if file.lastPathComponent == fileInEvent.lastPathComponent {
@@ -54,7 +54,7 @@ final class FileMonitorTests: XCTestCase {
         let testFile = tmp.appendingPathComponent(dir).appendingPathComponent("\(String.random(length: 8)).\(String.random(length: 3))");
         let watcher = Watcher(on: testFile) { expectation.fulfill() }
 
-        let monitor = try FileMonitor(directory: tmp.appendingPathComponent(dir), delegate: watcher)
+        let monitor = try FileMonitor(directory: tmp.appendingPathComponent(dir), delegate: watcher, options: nil)
         try monitor.start()
         Watcher.fileChanges = 0
 
@@ -73,7 +73,7 @@ final class FileMonitorTests: XCTestCase {
 
         let watcher = Watcher(on: testFile) { expectation.fulfill() }
 
-        let monitor = try FileMonitor(directory: tmp.appendingPathComponent(dir), delegate: watcher)
+        let monitor = try FileMonitor(directory: tmp.appendingPathComponent(dir), delegate: watcher, options: nil)
         try monitor.start()
         Watcher.fileChanges = 0
 
@@ -92,7 +92,7 @@ final class FileMonitorTests: XCTestCase {
 
         let watcher = Watcher(on: testFile) { expectation.fulfill() }
 
-        let monitor = try FileMonitor(directory: tmp.appendingPathComponent(dir), delegate: watcher)
+        let monitor = try FileMonitor(directory: tmp.appendingPathComponent(dir), delegate: watcher, options: nil)
         try monitor.start()
         Watcher.fileChanges = 0
 

@@ -38,7 +38,7 @@ final class FileMonitorExplicitChangeTests: XCTestCase {
             callback = completion
         }
 
-        func fileDidChanged(event: FileChangeEvent) {
+        func fileDidChange(event: FileChangeEvent) {
             switch event {
             case .changed(let fileInEvent):
                 if file.lastPathComponent == fileInEvent.lastPathComponent {
@@ -59,7 +59,7 @@ final class FileMonitorExplicitChangeTests: XCTestCase {
         let testFile = tmp.appendingPathComponent(dir).appendingPathComponent(testFileName)
         let watcher = ChangeWatcher(on: testFile) { expectation.fulfill() }
 
-        let monitor = try FileMonitor(directory: tmp.appendingPathComponent(dir), delegate: watcher)
+        let monitor = try FileMonitor(directory: tmp.appendingPathComponent(dir), delegate: watcher, options: [.ignoreDirectories])
         try monitor.start()
         ChangeWatcher.fileChanges = 0
 

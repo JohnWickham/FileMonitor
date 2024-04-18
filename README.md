@@ -53,7 +53,7 @@ struct FileMonitorExample: FileDidChangeDelegate {
         try monitor.start()
     }
     
-    public func fileDidChanged(event: FileChange) {
+    public func fileDidChange(event: FileChange) {
         switch event {
         case .added(let file):
             print("New file \(file.path)")

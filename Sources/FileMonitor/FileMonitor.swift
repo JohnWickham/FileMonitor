@@ -31,7 +31,7 @@ public struct FileMonitor: WatcherDelegate {
     }
 
     @discardableResult
-    public init(directory url: URL, delegate externDelegate: FileDidChangeDelegate? = nil) throws {
+    public init(directory url: URL, delegate externDelegate: FileDidChangeDelegate? = nil, options: [FileMonitorOptions]?) throws {
         if url.isDirectory == false {
             throw FileMonitorErrors.not_a_directory(url: url)
         }
@@ -42,9 +42,9 @@ public struct FileMonitor: WatcherDelegate {
         }
 
         #if os(Linux)
-            watcher = LinuxWatcher(directory: url)
+            watcher = LinuxWatcher(directory: url, options: options)
         #elseif os(macOS)
-            watcher = try MacosWatcher(directory: url)
+            watcher = try MacOSWatcher(directory: url, options: options)
         #else
             throw FileMonitorErrors.unsupported_os()
         #endif
@@ -74,8 +74,8 @@ public struct FileMonitor: WatcherDelegate {
     /// Called when the underlying subsystem detect a file change
     ///
     /// - Parameter event: A file change event
-    public func fileDidChanged(event: FileChangeEvent) {
-        delegate?.fileDidChanged(event: event)
+    public func fileDidChange(event: FileChangeEvent) {
+        delegate?.fileDidChange(event: event)
     }
 
 }

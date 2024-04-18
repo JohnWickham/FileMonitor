@@ -14,10 +14,12 @@ public struct LinuxWatcher: WatcherProtocol {
     var fsWatcher: FileSystemWatcher
     public var delegate: WatcherDelegate?
     var path: URL
+    var options: [FileMonitorOptions]?
 
-    public init(directory: URL) {
-        fsWatcher = FileSystemWatcher()
-        path = directory
+    public init(directory: URL, options: [FileMonitorOptions]?) {
+        self.fsWatcher = FileSystemWatcher()
+        self.path = directory
+        self.options = options
     }
 
     public func observe() throws {
@@ -25,8 +27,11 @@ public struct LinuxWatcher: WatcherProtocol {
             //print("Mask: 0x\(String(format: "%08x", fsEvent.mask))")
             guard let url = URL(string: self.path.path + "/" + fsEvent.name) else { return }
 
-            // Ignore directory changes
-            if fsEvent.mask & InotifyEventMask.inIsDir.rawValue > 0 { return }
+            if let options = self.options,
+               options.contains(.ignoreDirectories),
+               fsEvent.mask & InotifyEventMask.inIsDir.rawValue > 0 {
+                return
+            }
 
             var urlEvent: FileChangeEvent? = nil
 
@@ -54,7 +59,7 @@ public struct LinuxWatcher: WatcherProtocol {
                 return
             }
 
-            self.delegate?.fileDidChanged(event: urlEvent!)
+            self.delegate?.fileDidChange(event: urlEvent!)
         }
 
         fsWatcher.start()

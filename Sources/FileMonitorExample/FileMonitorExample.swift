@@ -35,7 +35,7 @@ public struct FileMonitorExample: FileDidChangeDelegate {
     func run(on folder: URL) throws {
         print("Monitoring files in \(folder.standardized.path)")
 
-        let monitor = try FileMonitor(directory: folder.standardized, delegate: self )
+        let monitor = try FileMonitor(directory: folder.standardized, delegate: self, options: [])
         try monitor.start();
 
         RunLoop.main.run()
@@ -46,7 +46,7 @@ public struct FileMonitorExample: FileDidChangeDelegate {
     /// Called when a file change event occurs
     ///
     /// - Parameter event: A FileChange event
-    public func fileDidChanged(event: FileChange) {
+    public func fileDidChange(event: FileChange) {
         print("\(event.description)")
     }
 }

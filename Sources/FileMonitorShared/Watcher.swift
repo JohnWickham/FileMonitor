@@ -5,14 +5,18 @@
 
 import Foundation
 
+public enum FileMonitorOptions {
+    case ignoreDirectories
+}
+
 public protocol WatcherDelegate {
-    func fileDidChanged(event: FileChangeEvent)
+    func fileDidChange(event: FileChangeEvent)
 }
 
 public protocol WatcherProtocol {
     var delegate: WatcherDelegate? { set get }
 
-    init(directory: URL) throws
+    init(directory: URL, options: [FileMonitorOptions]?) throws
     func observe() throws
     func stop()
 }
