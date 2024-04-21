@@ -31,20 +31,24 @@ final class FileMonitorExplicitChangeTests: XCTestCase {
     struct ChangeWatcher: FileDidChangeDelegate {
         static var fileChanges = 0
         static var missedChanges = 0
-        let callback: ()->Void
+        let expectation: XCTestExpectation
         let file: URL
 
-        init(on file: URL, completion: @escaping ()->Void) {
+        init(on file: URL, expectation: XCTestExpectation) {
             self.file = file
-            callback = completion
+            self.expectation = expectation
         }
 
         func fileDidChange(event: FileChangeEvent) {
             switch event {
-            case .modified(let fileInEvent, _):
-                if file.lastPathComponent == fileInEvent.lastPathComponent {
+            case .modified(let fileInEvent, let isDirectory):
+                if isDirectory, fileInEvent.lastPathComponent == fileInEvent.deletingLastPathComponent().path {
+                    print("Parent directory was modified")
+                }
+                else if file.lastPathComponent == fileInEvent.lastPathComponent {
+                    print("File was modified")
                     ChangeWatcher.fileChanges = ChangeWatcher.fileChanges + 1
-                    callback()
+                    expectation.fulfill()
                 }
             default:
                 print("Skipped", event)
@@ -54,11 +58,11 @@ final class FileMonitorExplicitChangeTests: XCTestCase {
     }
 
     func testLifecycleChange() throws {
-        let expectation = expectation(description: "Wait for file creation")
+        let expectation = XCTestExpectation(description: "Wait for file creation")
         expectation.assertForOverFulfill = false
 
         let testFile = tmp.appendingPathComponent(dir).appendingPathComponent(testFileName)
-        let watcher = ChangeWatcher(on: testFile) { expectation.fulfill() }
+        let watcher = ChangeWatcher(on: testFile, expectation: expectation)
 
         #if os(macOS)
         let options: WatcherOptions = [.fileEvents, .markSelf]
