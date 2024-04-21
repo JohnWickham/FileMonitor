@@ -12,11 +12,7 @@ let package = Package(
         // Products define the executables and libraries a package produces, and make them visible to other packages.
         .library(
                 name: "FileMonitor",
-                targets: ["FileMonitor"]),
-        .executable(
-                name: "FileMonitorExample",
-                targets: ["FileMonitorExample"]
-        )
+                targets: ["FileMonitor"])
     ],
     dependencies: [
     ],
@@ -49,9 +45,6 @@ let package = Package(
                 dependencies: ["FileMonitorShared"],
                 path: "Sources/FileMonitorMacOS"
         ),
-        .executableTarget(
-                name: "FileMonitorExample",
-                dependencies: ["FileMonitor"]),
         .testTarget(
             name: "FileMonitorTests",
             dependencies: ["FileMonitor"]),

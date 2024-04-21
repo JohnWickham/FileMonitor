@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import FileMonitorShared
 #if canImport(CInotify)
 import CInotify
 #endif

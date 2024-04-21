@@ -40,7 +40,7 @@ final class FileMonitorExplicitDeleteTests: XCTestCase {
 
         func fileDidChange(event: FileChangeEvent) {
             switch event {
-            case .deleted(let fileInEvent):
+            case .removed(let fileInEvent, _):
                 if file.lastPathComponent == fileInEvent.lastPathComponent {
                     ChangeWatcher.fileChanges = ChangeWatcher.fileChanges + 1
                     callback()
@@ -59,7 +59,12 @@ final class FileMonitorExplicitDeleteTests: XCTestCase {
         let testFile = tmp.appendingPathComponent(dir).appendingPathComponent(testFileName)
         let watcher = ChangeWatcher(on: testFile) { expectation.fulfill() }
 
-        let monitor = try FileMonitor(directory: tmp.appendingPathComponent(dir), delegate: watcher, options: [.ignoreDirectories])
+        #if os(macOS)
+        let options: WatcherOptions = [.fileEvents, .markSelf]
+        #elseif os(Linux)
+        let options: WatcherOptions = [.allEvents]
+        #endif
+        let monitor = try FileMonitor(directory: tmp.appendingPathComponent(dir), delegate: watcher, options: options)
         try monitor.start()
         ChangeWatcher.fileChanges = 0
 

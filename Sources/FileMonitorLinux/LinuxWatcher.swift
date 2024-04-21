@@ -10,56 +10,50 @@ import CInotify
 #endif
 
 #if os(Linux)
-public struct LinuxWatcher: WatcherProtocol {
+public struct LinuxWatcher: Watcher {
     var fsWatcher: FileSystemWatcher
     public var delegate: WatcherDelegate?
     var path: URL
-    var options: [FileMonitorOptions]?
+    public var options: WatcherOptions?
 
-    public init(directory: URL, options: [FileMonitorOptions]?) {
+    public init(directory: URL, options: WatcherOptions?) {
         self.fsWatcher = FileSystemWatcher()
         self.path = directory
         self.options = options
     }
 
     public func observe() throws {
-        fsWatcher.watch(path: self.path.path, for: InotifyEventMask.inAllEvents) { fsEvent in
+        fsWatcher.watch(path: path.path, for: InotifyEventMask.allEvents) { fsEvent in
             //print("Mask: 0x\(String(format: "%08x", fsEvent.mask))")
             guard let url = URL(string: self.path.path + "/" + fsEvent.name) else { return }
 
-            if let options = self.options,
-               options.contains(.ignoreDirectories),
-               fsEvent.mask & InotifyEventMask.inIsDir.rawValue > 0 {
+            var fileEvent: FileChangeEvent? = nil
+            
+            // Future improvement: check fsEvent.mask for the InotifyEventMask.movedFrom and InotifyEventMask.movedTo bits to notify about the original and destination of moved files.
+
+            let isDirectory = fsEvent.mask & InotifyEventMask.isDirectory.rawValue > 0
+            
+            // Added
+            if fsEvent.mask & InotifyEventMask.created.rawValue > 0 ||
+               fsEvent.mask & InotifyEventMask.moved.rawValue > 0 {
+                fileEvent = .created(file: url, isDirectory: isDirectory)
+            }
+            // Modified
+            if fsEvent.mask & InotifyEventMask.modified.rawValue > 0 ||
+               fsEvent.mask & InotifyEventMask.attributesChanged.rawValue > 0 {
+                fileEvent = .modified(file: url, isDirectory: isDirectory)
+            }
+            // Deleted or removed
+            else if fsEvent.mask & InotifyEventMask.deleted.rawValue > 0 ||
+                    fsEvent.mask & InotifyEventMask.deletedSelf.rawValue > 0 {
+                fileEvent = .removed(file: url, isDirectory: isDirectory)
+            }
+
+            if fileEvent == nil  {
                 return
             }
 
-            var urlEvent: FileChangeEvent? = nil
-
-            // File was changed
-            if fsEvent.mask & InotifyEventMask.inModify.rawValue > 0
-                || fsEvent.mask & InotifyEventMask.inMoveSelf.rawValue > 0
-            {
-                urlEvent = FileChangeEvent.changed(file: url)
-            }
-            // File added
-            else if fsEvent.mask & InotifyEventMask.inCreate.rawValue > 0
-                || fsEvent.mask & InotifyEventMask.inMovedTo.rawValue > 0
-            {
-                urlEvent = FileChangeEvent.added(file: url)
-            }
-            // File removed
-            else if fsEvent.mask & InotifyEventMask.inDelete.rawValue > 0
-                || fsEvent.mask & InotifyEventMask.inDeleteSelf.rawValue > 0
-                || fsEvent.mask & InotifyEventMask.inMovedFrom.rawValue > 0
-            {
-                urlEvent = FileChangeEvent.deleted(file: url)
-            }
-
-            if urlEvent == nil  {
-                return
-            }
-
-            self.delegate?.fileDidChange(event: urlEvent!)
+            self.delegate?.fileDidChange(event: fileEvent!)
         }
 
         fsWatcher.start()

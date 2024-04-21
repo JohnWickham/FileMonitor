@@ -23,7 +23,12 @@ final class FileMonitorTests: XCTestCase {
     }
 
     func testInitModule() throws {
-        XCTAssertNoThrow(try FileMonitor(directory: FileManager.default.temporaryDirectory, options: nil))
+        #if os(macOS)
+        let options: WatcherOptions = [.fileEvents, .markSelf]
+        #elseif os(Linux)
+        let options: WatcherOptions = [.allEvents]
+        #endif
+        XCTAssertNoThrow(try FileMonitor(directory: FileManager.default.temporaryDirectory, options: options))
     }
 
     struct Watcher: FileDidChangeDelegate {
@@ -38,7 +43,7 @@ final class FileMonitorTests: XCTestCase {
 
         func fileDidChange(event: FileChangeEvent) {
             switch event {
-            case .changed(let fileInEvent), .deleted(let fileInEvent), .added(let fileInEvent):
+            case .modified(let fileInEvent, _), .removed(let fileInEvent, _), .created(let fileInEvent, _):
                 if file.lastPathComponent == fileInEvent.lastPathComponent {
                     Watcher.fileChanges = Watcher.fileChanges + 1
                     callback()
@@ -54,7 +59,12 @@ final class FileMonitorTests: XCTestCase {
         let testFile = tmp.appendingPathComponent(dir).appendingPathComponent("\(String.random(length: 8)).\(String.random(length: 3))");
         let watcher = Watcher(on: testFile) { expectation.fulfill() }
 
-        let monitor = try FileMonitor(directory: tmp.appendingPathComponent(dir), delegate: watcher, options: nil)
+        #if os(macOS)
+        let options: WatcherOptions = [.fileEvents, .markSelf]
+        #elseif os(Linux)
+        let options: WatcherOptions = [.allEvents]
+        #endif
+        let monitor = try FileMonitor(directory: tmp.appendingPathComponent(dir), delegate: watcher, options: options)
         try monitor.start()
         Watcher.fileChanges = 0
 
@@ -73,7 +83,12 @@ final class FileMonitorTests: XCTestCase {
 
         let watcher = Watcher(on: testFile) { expectation.fulfill() }
 
-        let monitor = try FileMonitor(directory: tmp.appendingPathComponent(dir), delegate: watcher, options: nil)
+        #if os(macOS)
+        let options: WatcherOptions = [.fileEvents, .markSelf]
+        #elseif os(Linux)
+        let options: WatcherOptions = [.allEvents]
+        #endif
+        let monitor = try FileMonitor(directory: tmp.appendingPathComponent(dir), delegate: watcher, options: options)
         try monitor.start()
         Watcher.fileChanges = 0
 
@@ -92,7 +107,12 @@ final class FileMonitorTests: XCTestCase {
 
         let watcher = Watcher(on: testFile) { expectation.fulfill() }
 
-        let monitor = try FileMonitor(directory: tmp.appendingPathComponent(dir), delegate: watcher, options: nil)
+        #if os(macOS)
+        let options: WatcherOptions = [.fileEvents, .markSelf]
+        #elseif os(Linux)
+        let options: WatcherOptions = [.allEvents]
+        #endif
+        let monitor = try FileMonitor(directory: tmp.appendingPathComponent(dir), delegate: watcher, options: options)
         try monitor.start()
         Watcher.fileChanges = 0
 

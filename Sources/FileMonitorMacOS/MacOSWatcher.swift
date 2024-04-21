@@ -1,69 +1,82 @@
 //
-// aus der Technik, on 15.05.23.
-// https://www.ausdertechnik.de
+//  File.swift
+//  
+//
+//  Created by John Wickham on 4/19/24.
 //
 
 import Foundation
 import FileMonitorShared
 
-#if os(macOS)
-public final class MacOSWatcher: WatcherProtocol {
-    public var delegate: WatcherDelegate?
-    let fileWatcher: FileWatcher
-    private var lastFiles: [URL] = []
-
-    required public init(directory: URL, options: [FileMonitorOptions]?) throws {
-
-        fileWatcher = FileWatcher([directory.path])
-        fileWatcher.queue = DispatchQueue.global()
-        lastFiles = try getCurrentFiles(in: directory)
-
-        fileWatcher.callback = { [self] event throws in
-            guard let url = URL(string: event.path) else {
-                return
-            }
-            
-            if let options,
-               options.contains(.ignoreDirectories) {
-                guard url.isDirectory == false else {
-                    return
-                }
-            }
-            
-            let currentFiles = try getCurrentFiles(in: directory)
-
-            let removedFiles = getDifferencesInFiles(lhs: lastFiles, rhs: currentFiles)
-            let addedFiles = getDifferencesInFiles(lhs: currentFiles, rhs: lastFiles)
-            let changeSetCount = addedFiles.count - removedFiles.count
-
-            // new file in folder is a change, yet
-            if (event.fileModified || event.fileChange) && changeSetCount == 0 {
-                self.delegate?.fileDidChange(event: FileChangeEvent.changed(file: url))
-            } else if event.fileRemoved && changeSetCount < 0 {
-                self.delegate?.fileDidChange(event: FileChangeEvent.deleted(file: url))
-            } else if event.fileCreated {
-                self.delegate?.fileDidChange(event: FileChangeEvent.added(file: url))
-            } else {
-                if removedFiles.isEmpty == false {
-
-                }
-                self.delegate?.fileDidChange(event: FileChangeEvent.changed(file: url))
-            }
-
-            lastFiles = currentFiles
-        }
-    }
-
-    deinit {
-        stop()
-    }
-
-    public func observe() throws {
-        fileWatcher.start()
-    }
-
-    public func stop() {
-        fileWatcher.stop();
-    }
+public enum MacOSWatcherError: Error {
+    case failedToOpenStream(path: String)
 }
-#endif
+
+public class MacOSWatcher: Watcher {
+    
+    public var delegate: WatcherDelegate?
+    
+    private var directory: URL
+    private var options: WatcherOptions?
+    private var eventStream: FSEventStream?
+    
+    public required init(directory: URL, options: WatcherOptions?) throws {
+        self.directory = directory
+        self.options = options
+    }
+    
+    public convenience init(directory: URL, delegate: WatcherDelegate?) throws {
+        try self.init(directory: directory, options: nil)
+        self.delegate = delegate
+    }
+    
+    public func observe() throws {
+        
+        var flags: UInt32
+        if let options = options {
+            flags = options.rawValue
+        }
+        else {
+            flags = UInt32(kFSEventStreamCreateFlagNone)
+        }
+        
+        let stream = FSEventStream(path: directory.path(), since: nil, updateInterval: 1, fsEventStreamFlags: flags, queue: DispatchQueue.global(qos: .background)) { stream, event in
+            
+            switch event {
+            case .itemCreated(path: let path, itemType: let itemType, eventId: _, fromUs: _):
+                
+                let fileURL = URL(fileURLWithPath: path)
+                let isDirectory = itemType == .directory
+                self.delegate?.fileDidChange(event: .created(file: fileURL, isDirectory: isDirectory))
+                
+            case .itemDataModified(path: let path, itemType: let itemType, eventId: _, fromUs: _),
+                 .itemInodeMetadataModified(path: let path, itemType: let itemType, eventId: _, fromUs: _),
+                 .itemRenamed(path: let path, itemType: let itemType, eventId: _, fromUs: _):
+                
+                let fileURL = URL(fileURLWithPath: path)
+                let isDirectory = itemType == .directory
+                self.delegate?.fileDidChange(event: .modified(file: fileURL, isDirectory: isDirectory))
+                
+            case .itemRemoved(path: let path, itemType: let itemType, eventId: _, fromUs: _):
+                
+                let fileURL = URL(fileURLWithPath: path)
+                let isDirectory = itemType == .directory
+                self.delegate?.fileDidChange(event: .removed(file: fileURL, isDirectory: isDirectory))
+                
+            default:
+                print("Unhandled FSEvent: \(event)")
+            }
+            
+        }
+        
+        self.eventStream = stream
+        
+        eventStream?.startWatching()
+    }
+    
+    public func stop() {
+        eventStream?.stopWatching()
+    }
+    
+    
+}

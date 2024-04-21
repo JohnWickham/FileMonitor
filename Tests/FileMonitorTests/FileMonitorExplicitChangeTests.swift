@@ -18,6 +18,7 @@ final class FileMonitorExplicitChangeTests: XCTestCase {
 
         let testFile = tmp.appendingPathComponent(dir).appendingPathComponent(testFileName)
         try "hello".write(to: testFile, atomically: false, encoding: .utf8)
+        print("Created test file: \(tmp.appendingPathComponent(testFileName))")
 
     }
 
@@ -40,13 +41,13 @@ final class FileMonitorExplicitChangeTests: XCTestCase {
 
         func fileDidChange(event: FileChangeEvent) {
             switch event {
-            case .changed(let fileInEvent):
+            case .modified(let fileInEvent, _):
                 if file.lastPathComponent == fileInEvent.lastPathComponent {
                     ChangeWatcher.fileChanges = ChangeWatcher.fileChanges + 1
                     callback()
                 }
             default:
-                print("Missed", event)
+                print("Skipped", event)
                 ChangeWatcher.missedChanges = ChangeWatcher.missedChanges + 1
             }
         }
@@ -59,7 +60,12 @@ final class FileMonitorExplicitChangeTests: XCTestCase {
         let testFile = tmp.appendingPathComponent(dir).appendingPathComponent(testFileName)
         let watcher = ChangeWatcher(on: testFile) { expectation.fulfill() }
 
-        let monitor = try FileMonitor(directory: tmp.appendingPathComponent(dir), delegate: watcher, options: [.ignoreDirectories])
+        #if os(macOS)
+        let options: WatcherOptions = [.fileEvents, .markSelf]
+        #elseif os(Linux)
+        let options: WatcherOptions = [.allEvents]
+        #endif
+        let monitor = try FileMonitor(directory: tmp.appendingPathComponent(dir), delegate: watcher, options: options)
         try monitor.start()
         ChangeWatcher.fileChanges = 0
 

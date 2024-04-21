@@ -36,7 +36,7 @@ final class FileMonitorFileHasPathTests: XCTestCase {
 
         func fileDidChange(event: FileChangeEvent) {
             switch event {
-            case .added(let fileInEvent):
+            case .created(let fileInEvent, _):
                 if file.lastPathComponent == fileInEvent.lastPathComponent {
                     Watcher.lastFile = fileInEvent
                     Watcher.fileChanges = Watcher.fileChanges + 1
@@ -56,7 +56,12 @@ final class FileMonitorFileHasPathTests: XCTestCase {
         let testFile = tmp.appendingPathComponent(dir).appendingPathComponent("\(String.random(length: 8)).\(String.random(length: 3))");
         let watcher = Watcher(on: testFile) { expectation.fulfill() }
 
-        let monitor = try FileMonitor(directory: tmp.appendingPathComponent(dir), delegate: watcher, options: [.ignoreDirectories])
+        #if os(macOS)
+        let options: WatcherOptions = [.fileEvents, .markSelf]
+        #elseif os(Linux)
+        let options: WatcherOptions = [.allEvents]
+        #endif
+        let monitor = try FileMonitor(directory: tmp.appendingPathComponent(dir), delegate: watcher, options: options)
         try monitor.start()
         Watcher.fileChanges = 0
 
