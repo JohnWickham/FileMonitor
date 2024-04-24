@@ -9,17 +9,20 @@ public enum FileChangeEvent {
     case created(file: URL, isDirectory: Bool)
     case modified(file: URL, isDirectory: Bool)
     case removed(file: URL, isDirectory: Bool)
+    case childEvent(inFileAtPath: String)
 
     // Display friendly description of the event
     public var description: String {
         get {
             switch self {
-            case .created(file: let file, isDirectory: let isDirectory):
-                return "Created \(isDirectory ? "directory" : "file"):    \(file.path)"
-            case .modified(file: let file, isDirectory: let isDirectory):
-                return "Modified \(isDirectory ? "directory" : "file"):    \(file.path)"
-            case .removed(file: let file, isDirectory: let isDirectory):
-                return "Removed \(isDirectory ? "directory" : "file"):  \(file.path)"
+                case .created(file: let file, isDirectory: let isDirectory):
+                    return "Created \(isDirectory ? "directory" : "file"):    \(file.path)"
+                case .modified(file: let file, isDirectory: let isDirectory):
+                    return "Modified \(isDirectory ? "directory" : "file"):    \(file.path)"
+                case .removed(file: let file, isDirectory: let isDirectory):
+                    return "Removed \(isDirectory ? "directory" : "file"):  \(file.path)"
+                case .childEvent(inFileAtPath: let filePath):
+                    return "Event in child of: \(filePath)"
             }
         }
     }

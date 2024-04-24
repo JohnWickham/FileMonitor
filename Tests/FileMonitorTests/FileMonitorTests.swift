@@ -43,11 +43,18 @@ final class FileMonitorTests: XCTestCase {
 
         func fileDidChange(event: FileChangeEvent) {
             switch event {
-            case .modified(let fileInEvent, _), .removed(let fileInEvent, _), .created(let fileInEvent, _):
+                case .modified(let fileInEvent, _),
+                     .removed(let fileInEvent, _),
+                     .created(let fileInEvent, _):
                 if file.lastPathComponent == fileInEvent.lastPathComponent {
                     Watcher.fileChanges = Watcher.fileChanges + 1
                     callback()
                 }
+                case .childEvent(inFileAtPath: let filePath):
+                    if file.path == filePath {
+                        Watcher.fileChanges += 1
+                        callback()
+                    }
             }
         }
     }

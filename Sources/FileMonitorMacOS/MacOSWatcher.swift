@@ -63,7 +63,10 @@ public class MacOSWatcher: Watcher {
                 let fileURL = URL(fileURLWithPath: path)
                 let isDirectory = itemType == .directory
                 self.delegate?.fileDidChange(event: .removed(file: fileURL, isDirectory: isDirectory))
-                
+        
+            case .generic(path: let path, eventId: _, fromUs: _):
+                    self.delegate?.fileDidChange(event: .childEvent(inFileAtPath: path))
+                    
             default:
                 print("Unhandled FSEvent: \(event)")
             }

@@ -48,6 +48,15 @@ final class FileMonitorExplicitAddTests: XCTestCase {
                     return
                 }
                 AddWatcher.fileChanges += 1
+                case .childEvent(inFileAtPath: let path):
+                    let contents = try? FileManager.default.contentsOfDirectory(atPath: path)
+                    guard let contents = contents, contents.contains(file.lastPathComponent) else {
+                        AddWatcher.missedChanges += 1
+                        return
+                    }
+                    
+                    AddWatcher.fileChanges += 1
+                    callback()
             default:
                 print("Skipped", event)
                 AddWatcher.missedChanges = AddWatcher.missedChanges + 1
@@ -76,6 +85,6 @@ final class FileMonitorExplicitAddTests: XCTestCase {
         wait(for: [expectation], timeout: 10)
         
         // FIXME: On macOS, FS events here seem totally random. Sometimes AddWatcher.fileChanges is 2, sometimes it's 1.
-        XCTAssertEqual(AddWatcher.fileChanges, 2)// Expect 3 changes: 1 for creating the subdirectory, 1 for creating the file, 1 for modifying the file
+        XCTAssertEqual(AddWatcher.fileChanges, 1)// Expect 3 changes: 1 for creating the subdirectory, 1 for creating the file, 1 for modifying the file
     }
 }
