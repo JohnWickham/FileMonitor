@@ -40,7 +40,7 @@ public class MacOSWatcher: Watcher {
             flags = UInt32(kFSEventStreamCreateFlagNone)
         }
         
-        let stream = FSEventStream(path: directory.path(), since: nil, updateInterval: 1, fsEventStreamFlags: flags, queue: DispatchQueue.global(qos: .background)) { stream, event in
+        let stream = FSEventStream(path: directory.path(), since: UInt64(kFSEventStreamEventIdSinceNow), updateInterval: 1, fsEventStreamFlags: flags, queue: DispatchQueue.global(qos: .background)) { stream, event in
             
             switch event {
             case .itemCreated(path: let path, itemType: let itemType, eventId: _, fromUs: _),
