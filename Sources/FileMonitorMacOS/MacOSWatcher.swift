@@ -43,7 +43,8 @@ public class MacOSWatcher: Watcher {
         let stream = FSEventStream(path: directory.path(), since: nil, updateInterval: 1, fsEventStreamFlags: flags, queue: DispatchQueue.global(qos: .background)) { stream, event in
             
             switch event {
-            case .itemCreated(path: let path, itemType: let itemType, eventId: _, fromUs: _):
+            case .itemCreated(path: let path, itemType: let itemType, eventId: _, fromUs: _),
+                 .itemClonedAtPath(path: let path, itemType: let itemType, eventId: _, fromUs: _):
                 
                 let fileURL = URL(fileURLWithPath: path)
                 let isDirectory = itemType == .directory
